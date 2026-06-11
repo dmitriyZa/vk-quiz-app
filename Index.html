@@ -60,12 +60,17 @@
     </div>
 
     <script>
-        // Проверяем, доступен ли VK Bridge (в браузере его не будет, в ВК — будет)
-const vkBridge = window.vkBridge;
+      // 1. Универсальный поиск библиотеки VK Bridge
+const vkBridge = window.vkBridge || (window.vkBridge && window.vkBridge.default);
 
-if (vkBridge) {
+// 2. Более строгая проверка: ищем параметры запуска ВК в адресной строке
+const isVkEnvironment = window.location.search.includes('vk_app_id') || !!vkBridge;
+
+if (isVkEnvironment && vkBridge) {
     vkBridge.send('VKWebAppInit')
-        .then(() => console.log('VK Bridge успешно запущен внутри ВК'))
+        .then(() => {
+            console.log('VK Bridge успешно запущен внутри ВКонтакте!');
+        })
         .catch(err => console.error('Ошибка инициализации ВК:', err));
 } else {
     console.log('Приложение запущено в обычном браузере. Функции ВК отключены для теста.');
