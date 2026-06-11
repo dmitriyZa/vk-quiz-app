@@ -60,24 +60,33 @@
     </div>
 
     <script>
-      // 1. Универсальный поиск библиотеки VK Bridge
-const vkBridge = window.vkBridge || (window.vkBridge && window.vkBridge.default);
+      // 1. Создаем функцию запуска приложения
+function initializeVkApp() {
+    // Ищем vkBridge во всех возможных глобальных переменных
+    const bridge = window.vkBridge || (window.vkBridge && window.vkBridge.default) || window.VK;
+    
+    // Проверяем наличие параметров ВК в адресной строке браузера
+    const hasVkParams = window.location.search.includes('vk_app_id');
 
-// 2. Более строгая проверка: ищем параметры запуска ВК в адресной строке
-const isVkEnvironment = window.location.search.includes('vk_app_id') || !!vkBridge;
-
-if (isVkEnvironment && vkBridge) {
-    vkBridge.send('VKWebAppInit')
-        .then(() => {
-            console.log('VK Bridge успешно запущен внутри ВКонтакте!');
-        })
-        .catch(err => console.error('Ошибка инициализации ВК:', err));
-} else {
-    console.log('Приложение запущено в обычном браузере. Функции ВК отключены для теста.');
+    if (bridge) {
+        bridge.send('VKWebAppInit')
+            .then(() => {
+                console.log('VK Bridge успешно запущен внутри ВКонтакте!');
+            })
+            .catch(err => console.error('Ошибка инициализации ВК:', err));
+    } else if (hasVkParams) {
+        // Если параметры ВК есть, но библиотека еще не прогрузилась — пробуем снова через 100мс
+        setTimeout(initializeVkApp, 100);
+    } else {
+        console.log('Приложение запущено в обычном браузере. Функции ВК отключены для теста.');
+    }
 }
 
+// 2. Запускаем проверку сразу при загрузке страницы
+initializeVkApp();
+
 // НАСТРОЙКИ: Замените на ваши реальные данные!
-const GROUP_ID = 123456789; 
+const GROUP_ID = 77856341; 
 const PDF_URL = "https://example.com"; 
 
         // База данных вопросов и вариантов ответов
