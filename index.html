@@ -60,34 +60,40 @@
     </div>
 
     <script>
-      // 1. Создаем функцию запуска приложения
-function initializeVkApp() {
-    // Ищем vkBridge во всех возможных глобальных переменных
-    const bridge = window.vkBridge || (window.vkBridge && window.vkBridge.default) || window.VK;
-    
-    // Проверяем наличие параметров ВК в адресной строке браузера
-    const hasVkParams = window.location.search.includes('vk_app_id');
+    // Функция безопасного вызова VK Bridge
+function initVkBridge() {
+    // Проверяем наличие библиотеки в глобальной видимости
+    const bridge = window.vkBridge || (window.vkBridge && window.vkBridge.default);
 
     if (bridge) {
+        // Сначала шлем обязательный Init
         bridge.send('VKWebAppInit')
             .then(() => {
-                console.log('VK Bridge успешно запущен внутри ВКонтакте!');
+                console.log('VK Bridge успешно запущен!');
+                
+                // Сразу запрашиваем базовые данные пользователя. 
+                // Это принудительно создает сессию внутри ВК и лечит баг с 'currentAppId'
+                return bridge.send('VKWebAppGetUserInfo');
             })
-            .catch(err => console.error('Ошибка инициализации ВК:', err));
-    } else if (hasVkParams) {
-        // Если параметры ВК есть, но библиотека еще не прогрузилась — пробуем снова через 100мс
-        setTimeout(initializeVkApp, 100);
+            .then((userInfo) => {
+                console.log(`Пользователь авторизован: ${userInfo.first_name}`);
+            })
+            .catch(err => {
+                console.error('Ошибка инициализации или авторизации в ВК:', err);
+            });
     } else {
-        console.log('Приложение запущено в обычном браузере. Функции ВК отключены для теста.');
+        // Если это десктопная версия ВК, скрипт может грузиться дольше. Пробуем снова через 150мс
+        setTimeout(initVkBridge, 150);
     }
 }
 
-// 2. Запускаем проверку сразу при загрузке страницы
-initializeVkApp();
+// Запускаем процесс проверки при загрузке окна
+window.addEventListener('load', initVkBridge);
 
-// НАСТРОЙКИ: Замените на ваши реальные данные!
+// НАСТРОЙКИ ПРИЛОЖЕНИЯ
 const GROUP_ID = 77856341; 
-const PDF_URL = "https://example.com"; 
+const PDF_URL = "https://example.com"; // Замените на вашу реальную ссылку!
+
 
         // База данных вопросов и вариантов ответов
         const quizData = [
