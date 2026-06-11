@@ -193,25 +193,38 @@ const PDF_URL = "https://example.com";
         }
 
         // Финальный шаг: автоматическая проверка/подписка и выдача подарка
-        async function claimGift() {
+        // Финальный шаг: подписка и выдача подарка (исправленная версия)
+async function claimGift() {
+    // Настройки ID группы и ссылки на подарок
+    const GROUP_ID = 77856341; 
+    const PDF_URL = "https://example.com"; // Замените на реальную ссылку!
+
     // Если vkBridge нет (тест в браузере) — просто симулируем выдачу
-    if (!vkBridge) {
+    const bridge = window.vkBridge || (window.vkBridge && window.vkBridge.default) || window.VK;
+    
+    if (!bridge) {
         alert("Режим теста в браузере: Открываем ваш PDF в новой вкладке!");
         window.open(PDF_URL, '_blank');
         return;
     }
 
     try {
-        const checkGroup = await vkBridge.send('VKWebAppGetGroupInfo', { group_id: GROUP_ID });
-        if (!checkGroup.is_member) {
-            await vkBridge.send('VKWebAppJoinGroup', { group_id: GROUP_ID });
-        }
-        await vkBridge.send('VKWebAppOpenURL', { url: PDF_URL });
-        await vkBridge.send('VKWebAppAllowMessagesFromGroup', { group_id: GROUP_ID });
+        // Бьем напрямую: вызываем родное окно подписки ВК без лишних проверок инфо группы
+        await bridge.send('VKWebAppJoinGroup', { group_id: GROUP_ID });
+        
+        // Мгновенно открываем PDF-файл в новой вкладке
+        await bridge.send('VKWebAppOpenURL', { url: PDF_URL });
+        
+        // Дополнительно запрашиваем доступ к ЛС группы для отправки сообщений (сбор лидов)
+        await bridge.send('VKWebAppAllowMessagesFromGroup', { group_id: GROUP_ID });
+        
     } catch (error) {
-        console.error("Ошибка VK Bridge при получении подарка:", error);
+        console.error("Пользователь отменил подписку или произошла ошибка:", error);
+        // Даже если пользователь нажал "Отмена", всё равно даем ему файл, чтобы не злить
+        await bridge.send('VKWebAppOpenURL', { url: PDF_URL });
     }
 }
+
     </script>
 </body>
 </html>
