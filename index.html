@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Вместо старого скрипта vk-bridge вставляем этот: -->
 <script src="https://cloudflare.com"></script>
+<!-- Надежное подключение VK Bridge прямо с серверов UNPKG -->
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+
 
 </head>
 <body class="bg-slate-50 font-sans antialiased text-slate-800 flex items-center justify-center min-h-screen p-4">
@@ -60,39 +63,27 @@
     </div>
 
     <script>
-    // Функция безопасного вызова VK Bridge
-function initVkBridge() {
-    // Проверяем наличие библиотеки в глобальной видимости
-    const bridge = window.vkBridge || (window.vkBridge && window.vkBridge.default);
+    // Ждем, пока страница полностью загрузится
+window.addEventListener('load', () => {
+    // Проверяем наличие vkBridge в глобальном пространстве
+    const bridge = window.vkBridge;
 
     if (bridge) {
-        // Сначала шлем обязательный Init
         bridge.send('VKWebAppInit')
             .then(() => {
-                console.log('VK Bridge успешно запущен!');
-                
-                // Сразу запрашиваем базовые данные пользователя. 
-                // Это принудительно создает сессию внутри ВК и лечит баг с 'currentAppId'
-                return bridge.send('VKWebAppGetUserInfo');
+                console.log('VK Bridge успешно запущен внутри ВКонтакте!');
+                // Убираем заглушки, если они были
             })
-            .then((userInfo) => {
-                console.log(`Пользователь авторизован: ${userInfo.first_name}`);
-            })
-            .catch(err => {
-                console.error('Ошибка инициализации или авторизации в ВК:', err);
-            });
+            .catch(err => console.error('Ошибка инициализации ВК:', err));
     } else {
-        // Если это десктопная версия ВК, скрипт может грузиться дольше. Пробуем снова через 150мс
-        setTimeout(initVkBridge, 150);
+        console.log('Приложение запущено в обычном браузере или скрипт заблокирован провайдером.');
     }
-}
+});
 
-// Запускаем процесс проверки при загрузке окна
-window.addEventListener('load', initVkBridge);
-
-// НАСТРОЙКИ ПРИЛОЖЕНИЯ
+// НАСТРОЙКИ
 const GROUP_ID = 77856341; 
-const PDF_URL = "https://example.com"; // Замените на вашу реальную ссылку!
+const PDF_URL = "https://example.com"; 
+
 
 
         // База данных вопросов и вариантов ответов
