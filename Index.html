@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест для родителей: Английский язык</title>
+    <!-- Подключаем Tailwind CSS для красивого дизайна без мучений -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Вместо старого скрипта vk-bridge вставляем этот: -->
+<script src="https://cloudflare.com"></script>
+
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+        
+        <!-- ЭКРАН 1: СТАРТ -->
+        <div id="screen-start" class="block space-y-4 text-center">
+            <div class="text-4xl">🇬🇧</div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Какой метод английского подойдёт вашему ребёнку?</h1>
+            <p class="text-slate-600 text-sm">Пройдите тест из 3 вопросов, узнайте склонности малыша и заберите PDF-гайд «30 развивающих игр дома» в подарок!</p>
+            <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-xl transition duration-200 shadow-md shadow-indigo-100 cursor-pointer">
+                Начать тест
+            </button>
+        </div>
+
+        <!-- ЭКРАН 2: ВОПРОСЫ (динамически меняется через JS) -->
+        <div id="screen-quiz" class="hidden space-y-6">
+            <!-- Индикатор прогресса -->
+            <div class="w-full bg-slate-100 rounded-full h-2">
+                <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 33%"></div>
+            </div>
+            
+            <div class="space-y-2">
+                <span id="question-number" class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Вопрос 1 из 3</span>
+                <h2 id="question-text" class="text-xl font-bold text-slate-900">Здесь будет текст вопроса</h2>
+            </div>
+
+            <div id="answers-container" class="space-y-3">
+                <!-- Сюда JS будет вставлять кнопки вариантов ответов -->
+            </div>
+        </div>
+
+        <!-- ЭКРАН 3: ФИНАЛ И ПОДАРОК -->
+        <div id="screen-finish" class="hidden space-y-5 text-center">
+            <div class="text-4xl">🎉</div>
+            <h1 class="text-2xl font-bold text-slate-900">Тест успешно пройден!</h1>
+            
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
+                <p class="text-xs font-bold uppercase tracking-wide text-indigo-700 mb-1">Ваш результат:</p>
+                <p id="result-text" class="text-slate-700 text-sm font-medium">Определяем тип...</p>
+            </div>
+
+            <p class="text-slate-600 text-xs">Чтобы забрать PDF-инструкцию «30 развивающих игр дома» и записаться на бесплатный разбор, подпишитесь на нашу группу.</p>
+            
+            <button onclick="claimGift()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition duration-200 shadow-md shadow-emerald-100 cursor-pointer">
+                🎁 Подписаться и забрать PDF
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Проверяем, доступен ли VK Bridge (в браузере его не будет, в ВК — будет)
+const vkBridge = window.vkBridge;
+
+if (vkBridge) {
+    vkBridge.send('VKWebAppInit')
+        .then(() => console.log('VK Bridge успешно запущен внутри ВК'))
+        .catch(err => console.error('Ошибка инициализации ВК:', err));
+} else {
+    console.log('Приложение запущено в обычном браузере. Функции ВК отключены для теста.');
+}
+
+// НАСТРОЙКИ: Замените на ваши реальные данные!
+const GROUP_ID = 123456789; 
+const PDF_URL = "https://example.com"; 
+
+        // База данных вопросов и вариантов ответов
+        const quizData = [
+            {
+                question: "Как ребёнок обычно реагирует на английские песенки или мультики?",
+                answers: [
+                    { text: "Подпевает и пытается повторять движения", type: "Игровой" },
+                    { text: "Внимательно смотрит, но молчит", type: "Аналитический" },
+                    { text: "Быстро отвлекается на другие дела", type: "Визуальный" }
+                ]
+            },
+            {
+                question: "Какая активность даётся ребёнку легче всего?",
+                answers: [
+                    { text: "Подвижные игры и бег", type: "Игровой" },
+                    { text: "Рисование, лепка, пазлы", type: "Визуальный" },
+                    { text: "Рассматривание книг и карточек", type: "Аналитический" }
+                ]
+            },
+            {
+                question: "Сколько времени в день ребёнок может усидчиво заниматься чем-то одним?",
+                answers: [
+                    { text: "Не более 5-10 минут", type: "Игровой" },
+                    { text: "Около 15-20 минут", type: "Визуальный" },
+                    { text: "Способен сидеть дольше 20 минут", type: "Аналитический" }
+                ]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        // Счётчик типов ответов для финального вердикта
+        let scores = { "Игровой": 0, "Аналитический": 0, "Визуальный": 0 };
+
+        // Переключатель экранов
+        function showScreen(screenId) {
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-finish').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            scores = { "Игровой": 0, "Аналитический": 0, "Визуальный": 0 };
+            showScreen('screen-quiz');
+            renderQuestion();
+        }
+
+        // Вывод текущего вопроса на экран
+        function renderQuestion() {
+            const currentQuestion = quizData[currentQuestionIndex];
+            
+            // Обновляем тексты и прогресс-бар
+            document.getElementById('question-number').innerText = `Вопрос ${currentQuestionIndex + 1} из ${quizData.length}`;
+            document.getElementById('question-text').innerText = currentQuestion.question;
+            
+            const progressPercent = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+            // Очищаем старые кнопки вариантов
+            const container = document.getElementById('answers-container');
+            container.innerHTML = '';
+
+            // Создаем новые кнопки ответов с красивыми стилями Tailwind
+            currentQuestion.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl p-4 text-sm font-medium transition duration-150 cursor-pointer";
+                button.innerText = answer.text;
+                button.onclick = () => selectAnswer(answer.type);
+                container.appendChild(button);
+            });
+        }
+
+        // Логика клика по ответу
+        function selectAnswer(type) {
+            scores[type]++; // Увеличиваем счетчик выбранного типа мышления
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < quizData.length) {
+                renderQuestion();
+            } else {
+                calculateResult();
+            }
+        }
+
+        // Подсчёт результатов теста
+        function calculateResult() {
+            showScreen('screen-finish');
+            
+            // Находим тип, который набрал больше всего очков
+            let maxType = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+            
+            let description = "";
+            if (maxType === "Игровой") {
+                description = "Ваш ребёнок — Игровой тип. Ему категорически противопоказана зубрёжка. Язык усвоится только через песни, танцы и шпионские игры.";
+            } else if (maxType === "Визуальный") {
+                description = "Ваш ребёнок — Визуальный тип. Ему важны яркие образы. Лучше всего учить язык через иллюстрированные книги, карточки и мультфильмы.";
+            } else {
+                description = "Ваш ребёнок — Аналитический тип. У него отличная память на детали. Ему понравятся логические цепочки, простые правила и структурированные занятия.";
+            }
+
+            document.getElementById('result-text').innerText = description;
+        }
+
+        // Финальный шаг: автоматическая проверка/подписка и выдача подарка
+        async function claimGift() {
+    // Если vkBridge нет (тест в браузере) — просто симулируем выдачу
+    if (!vkBridge) {
+        alert("Режим теста в браузере: Открываем ваш PDF в новой вкладке!");
+        window.open(PDF_URL, '_blank');
+        return;
+    }
+
+    try {
+        const checkGroup = await vkBridge.send('VKWebAppGetGroupInfo', { group_id: GROUP_ID });
+        if (!checkGroup.is_member) {
+            await vkBridge.send('VKWebAppJoinGroup', { group_id: GROUP_ID });
+        }
+        await vkBridge.send('VKWebAppOpenURL', { url: PDF_URL });
+        await vkBridge.send('VKWebAppAllowMessagesFromGroup', { group_id: GROUP_ID });
+    } catch (error) {
+        console.error("Ошибка VK Bridge при получении подарка:", error);
+    }
+}
+    </script>
+</body>
+</html>
